@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Home &mdash; Image Storage Demo{% endblock %}
+{% block content %}
+<div class="text-center mb-5">
+  <h1 class="display-5 fw-bold">Image Storage Demo</h1>
+  <p class="lead">Compare Two Image Storage Methods: File System vs Database BLOB</p>
+</div>
+
+<div class="row g-4 mb-5">
+  <div class="col-md-3 col-sm-6">
+    <a href="{{ url_for('main.upload_filesystem') }}" class="text-decoration-none">
+      <div class="card h-100 text-center shadow-sm nav-card">
+        <div class="card-body">
+          <div class="display-6 mb-2">&#128193;</div>
+          <h5 class="card-title">Upload using File System</h5>
+          <p class="card-text text-muted small">Save the raw file to disk, store only metadata in MySQL.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="{{ url_for('main.upload_blob') }}" class="text-decoration-none">
+      <div class="card h-100 text-center shadow-sm nav-card">
+        <div class="card-body">
+          <div class="display-6 mb-2">&#128451;&#65039;</div>
+          <h5 class="card-title">Upload using Database BLOB</h5>
+          <p class="card-text text-muted small">Store the raw bytes directly inside a MySQL LONGBLOB column.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="{{ url_for('main.gallery') }}" class="text-decoration-none">
+      <div class="card h-100 text-center shadow-sm nav-card">
+        <div class="card-body">
+          <div class="display-6 mb-2">&#128247;</div>
+          <h5 class="card-title">Gallery</h5>
+          <p class="card-text text-muted small">Browse everything uploaded, filterable by storage method.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <a href="{{ url_for('main.statistics') }}" class="text-decoration-none">
+      <div class="card h-100 text-center shadow-sm nav-card">
+        <div class="card-body">
+          <div class="display-6 mb-2">&#128202;</div>
+          <h5 class="card-title">Statistics</h5>
+          <p class="card-text text-muted small">Live storage usage and performance metrics.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">System Overview</div>
+      <div class="card-body">
+        <p>This application demonstrates and benchmarks two common strategies for
+          persisting user-uploaded images in a Flask + MySQL web application:</p>
+        <ul>
+          <li><strong>File System Storage</strong> &mdash; the image bytes are written to
+            the server's disk (<code>uploads/</code>); only a file path and metadata
+            row are stored in the database.</li>
+          <li><strong>Database BLOB Storage</strong> &mdash; the image bytes are written
+            directly into a MySQL <code>LONGBLOB</code> column, alongside its metadata.</li>
+        </ul>
+        <p class="mb-0">Every upload is validated (extension, MIME type, size, and
+          actual image content via Pillow) before it is persisted, and every
+          upload/retrieval is timed so the two approaches can be compared with
+          real numbers on the <a href="{{ url_for('main.comparison') }}">Comparison</a> page.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Architecture</div>
+      <div class="card-body">
+        <pre class="mb-0 small architecture-diagram">Browser
+  |
+  v
+Apache2 + mod_wsgi  (production)
+  |
+  v
+Flask Application Factory (app/__init__.py)
+  |-- routes.py -----> Blueprint: main
+  |-- forms.py -------> Flask-WTF (CSRF)
+  |-- services/
+  |     |-- image_validator.py
+  |     |-- filesystem_storage.py --> uploads/ (disk)
+  |     |-- blob_storage.py --------> MySQL image_blobs
+  |     |-- statistics_service.py
+  |     `-- comparison_service.py
+  `-- models.py -------> SQLAlchemy: Image, ImageBlob
+        |
+        v
+      MySQL 8 (images, image_blobs)</pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

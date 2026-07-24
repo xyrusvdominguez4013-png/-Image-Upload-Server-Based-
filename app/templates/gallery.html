@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Gallery &mdash; Image Storage Demo{% endblock %}
+{% block content %}
+<h1 class="mb-4">Gallery</h1>
+
+<form method="get" class="row g-2 align-items-center mb-4">
+  <div class="col-auto">
+    <div class="btn-group" role="group" aria-label="Storage filter">
+      <a href="{{ url_for('main.gallery', storage='all', q=search) }}"
+         class="btn btn-outline-secondary {{ 'active' if storage_filter == 'all' }}">All Images</a>
+      <a href="{{ url_for('main.gallery', storage='filesystem', q=search) }}"
+         class="btn btn-outline-secondary {{ 'active' if storage_filter == 'filesystem' }}">File System</a>
+      <a href="{{ url_for('main.gallery', storage='blob', q=search) }}"
+         class="btn btn-outline-secondary {{ 'active' if storage_filter == 'blob' }}">Database</a>
+    </div>
+  </div>
+  <div class="col-auto flex-grow-1">
+    <input type="search" name="q" value="{{ search }}" class="form-control" placeholder="Search by filename&hellip;">
+  </div>
+  <input type="hidden" name="storage" value="{{ storage_filter }}">
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </div>
+</form>
+
+<p class="text-muted">{{ total }} image{{ '' if total == 1 else 's' }} found.</p>
+
+<div class="row g-4">
+  {% for image in images %}
+  <div class="col-md-4 col-sm-6">
+    <div class="card h-100 shadow-sm">
+      {% if image.storage_method == 'blob' %}
+        <img src="{{ url_for('main.stream_blob_image', image_id=image.id) }}" class="card-img-top gallery-thumb" alt="{{ image.original_filename }}">
+      {% else %}
+        <img src="{{ url_for('main.stream_filesystem_image', image_id=image.id) }}" class="card-img-top gallery-thumb" alt="{{ image.original_filename }}">
+      {% endif %}
+      <div class="card-body">
+        <h6 class="card-title text-truncate" title="{{ image.original_filename }}">{{ image.original_filename }}</h6>
+        <span class="badge {{ 'bg-primary' if image.storage_method == 'filesystem' else 'bg-success' }} mb-2">
+          {{ 'File System' if image.storage_method == 'filesystem' else 'Database BLOB' }}
+        </span>
+        <ul class="list-unstyled small text-muted mb-0">
+          <li>Size: {{ (image.filesize / 1024) | round(1) }} KB</li>
+          <li>Type: {{ image.mime_type }}</li>
+          <li>Uploaded: {{ image.upload_time.strftime('%Y-%m-%d %H:%M') }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="alert alert-info">No images found. Try uploading one from the
+      <a href="{{ url_for('main.upload_filesystem') }}">File System</a> or
+      <a href="{{ url_for('main.upload_blob') }}">Database BLOB</a> upload pages.</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<nav class="mt-4" aria-label="Gallery pagination">
+  <ul class="pagination justify-content-center">
+    {% for p in range(1, total_pages + 1) %}
+      <li class="page-item {{ 'active' if p == page }}">
+        <a class="page-link" href="{{ url_for('main.gallery', storage=storage_filter, q=search, page=p) }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

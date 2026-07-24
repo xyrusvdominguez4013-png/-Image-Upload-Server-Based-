@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Flask
+instance/*
+!instance/.gitkeep
+
+# Uploaded demo images (contents are user-generated, not source)
+uploads/*
+!uploads/.gitkeep
+
+# Environment / secrets
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

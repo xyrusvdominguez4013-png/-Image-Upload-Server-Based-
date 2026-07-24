@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Comparison &mdash; Image Storage Demo{% endblock %}
+{% block content %}
+<h1 class="mb-4">Storage Method Comparison</h1>
+
+{% if benchmark.avg_upload_ms_filesystem is not none or benchmark.avg_upload_ms_blob is not none %}
+<div class="alert alert-info">
+  <strong>Live benchmark (this installation):</strong>
+  File System average upload
+  {% if benchmark.avg_upload_ms_filesystem is not none %}{{ benchmark.avg_upload_ms_filesystem | round(1) }} ms{% else %}n/a{% endif %}
+  &middot; Database BLOB average upload
+  {% if benchmark.avg_upload_ms_blob is not none %}{{ benchmark.avg_upload_ms_blob | round(1) }} ms{% else %}n/a{% endif %}
+  {% if benchmark.faster_upload_method %}
+    &mdash; <strong>{{ 'File System' if benchmark.faster_upload_method == 'filesystem' else 'Database BLOB' }}</strong> was faster on average.
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="table-responsive mb-5">
+  <table class="table table-bordered align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Category</th>
+        <th>File System Storage</th>
+        <th>Database BLOB Storage</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in matrix %}
+      <tr>
+        <th class="table-light">{{ row.category }}</th>
+        <td>{{ row.filesystem }}</td>
+        <td>{{ row.blob }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-primary">
+      <div class="card-header bg-primary text-white fw-semibold">File System &mdash; Advantages / Disadvantages</div>
+      <div class="card-body">
+        <h6>Advantages</h6>
+        <ul>
+          <li>Fast reads/writes, works well with a CDN</li>
+          <li>Keeps the database small and fast to back up</li>
+          <li>Scales horizontally with object storage (S3, NFS)</li>
+        </ul>
+        <h6>Disadvantages</h6>
+        <ul class="mb-0">
+          <li>Two systems (disk + DB) must be backed up and kept in sync</li>
+          <li>Requires careful path handling to avoid traversal attacks</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 border-success">
+      <div class="card-header bg-success text-white fw-semibold">Database BLOB &mdash; Advantages / Disadvantages</div>
+      <div class="card-body">
+        <h6>Advantages</h6>
+        <ul>
+          <li>Single source of truth &mdash; one backup covers everything</li>
+          <li>Transactionally consistent with related rows</li>
+          <li>No separately exposed file path to secure</li>
+        </ul>
+        <h6>Disadvantages</h6>
+        <ul class="mb-0">
+          <li>Slower reads/writes for large files</li>
+          <li>Database grows large and becomes harder to scale</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

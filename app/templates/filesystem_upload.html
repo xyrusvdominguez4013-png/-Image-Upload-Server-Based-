@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}File System Upload &mdash; Image Storage Demo{% endblock %}
+{% block content %}
+<h1 class="mb-4">Upload using File System</h1>
+
+<div class="row">
+  <div class="col-lg-7">
+    <form method="post" enctype="multipart/form-data" novalidate id="uploadForm">
+      {{ form.hidden_tag() }}
+      <div id="dropZone" class="drop-zone mb-3">
+        <p class="mb-1">Drag &amp; drop an image here, or click to choose a file</p>
+        <p class="text-muted small mb-0">JPG, JPEG, PNG, GIF, WEBP &mdash; up to 10 MB</p>
+        {{ form.image(class="form-control mt-3", id="imageInput") }}
+      </div>
+      {% for error in form.image.errors %}
+        <div class="alert alert-danger py-2">{{ error }}</div>
+      {% endfor %}
+
+      <img id="previewImage" class="img-fluid rounded border mb-3 d-none" alt="Preview">
+
+      <div class="progress mb-3 d-none" id="uploadProgressWrap">
+        <div class="progress-bar" id="uploadProgress" role="progressbar" style="width: 0%">0%</div>
+      </div>
+
+      {{ form.submit(class="btn btn-primary") }}
+    </form>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Workflow</div>
+      <div class="card-body">
+        <ol class="mb-0">
+          <li>Choose image</li>
+          <li>Validate (extension, MIME, size, Pillow integrity check)</li>
+          <li>Generate UUID filename</li>
+          <li>Save to <code>uploads/</code></li>
+          <li>Insert metadata into MySQL</li>
+          <li>Display success message</li>
+          <li>View in gallery</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  ImageStorageDemo.initUploadPage({ dropZoneId: "dropZone", inputId: "imageInput", previewId: "previewImage",
+    formId: "uploadForm", progressWrapId: "uploadProgressWrap", progressBarId: "uploadProgress" });
+</script>
+{% endblock %}
