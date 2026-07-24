@@ -53,7 +53,9 @@ image-storage-demo/
 ├── run.py                     # Dev server entry point
 ├── config.py                  # Environment-based configuration
 ├── requirements.txt
-├── install.sh                 # Dependency-checking installer (Ubuntu)
+├── install.sh                 # All-in-one installer: deps, DB, migrate, smoke test
+├── scripts/
+│   └── smoke_test.py          # End-to-end test invoked by install.sh
 ├── database/
 │   ├── schema.sql             # Raw MySQL DDL
 │   └── seed.sql                # Illustrative demo rows

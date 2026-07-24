@@ -15,35 +15,71 @@ VirtualBox (preferred) or VMware Workstation.
 
 ```bash
 sudo apt install -y git
-git clone https://github.com/xyrusvdominguez4013-png/-Image-Upload-Server-Based-.git
-cd -Image-Upload-Server-Based-
+git clone https://github.com/xyrusvdominguez4013-png/image-storage-demo.git
+cd image-storage-demo
 ```
 
-## 3. Run the dependency-checking installer
+## 3. Run the all-in-one installer
 
-`install.sh` detects what's already installed and only installs what's
-missing, so it's safe to re-run after a partial failure.
+`install.sh` is idempotent (safe to re-run after a partial failure) and
+does everything end to end:
+
+1. Checks/installs each system dependency (skipping anything already
+   present).
+2. Provisions the MySQL database and application user, generating a
+   random password.
+3. Writes a working `.env` (`SECRET_KEY`, `DATABASE_URL`, and the
+   `UPLOAD_FOLDER`/`LOG_FILE` paths, pointed at wherever you actually
+   cloned the repo — not a hardcoded location).
+4. Runs Flask-Migrate against the real database.
+5. Runs an end-to-end smoke test (uploads a real image through both
+   storage methods, verifies every page and both retrieval routes, and
+   confirms the validator rejects a bad file) against a **disposable
+   throwaway database** that's dropped afterward — your real database and
+   `uploads/` folder are never touched by test data.
+6. Hands file ownership back to the user who ran `sudo`, so `flask run`
+   works immediately afterward without permission errors.
+
+Every step prints a colored PASS/FAIL line, with a summary at the end:
 
 ```bash
 chmod +x install.sh
 sudo ./install.sh
 ```
 
+Flags:
+
+| Flag | Effect |
+|---|---|
+| `--skip-smoke-test` | Skip step 5 (useful on repeat runs where you don't want the extra time/DB churn). |
+| `--skip-db` | Skip MySQL provisioning and migration entirely — use this if you're pointing at an external/managed MySQL instance; set `DATABASE_URL` in `.env` yourself afterward, then run `flask db upgrade` manually. |
+
 It checks for / installs as needed:
 
 | Dependency | Purpose |
 |---|---|
-| `python3`, `python3-venv`, `python3-pip` | Runtime + virtual environment |
+| `python3`, `python3-venv` (+ the exact `python3.X-venv` for your installed version), `python3-pip` | Runtime + virtual environment |
 | `libjpeg-dev`, `zlib1g-dev`, `libwebp-dev` | Pillow's native image codecs |
 | `mysql-server` | Database (MySQL 8) |
 | `apache2` | Web server |
 | `libapache2-mod-wsgi-py3` | Runs Flask under Apache |
 | `git` | Version control |
 
-It then creates a Python virtual environment in `venv/`, installs
-`requirements.txt` into it, and copies `.env.example` to `.env`.
+If a failure occurs partway through, fix the reported issue and re-run
+`sudo ./install.sh` — it picks up where it left off rather than redoing
+completed steps. Two things it defends against automatically:
 
-## 4. Configure MySQL
+* **Interrupted dpkg/apt state** (common on freshly-provisioned VM
+  images) — it runs `dpkg --configure -a` as a safe preflight repair
+  before installing anything.
+* **The apt/dpkg lock being held by `unattended-upgrades`** (which runs
+  automatically after boot) — instead of failing immediately, it waits
+  (up to 5 minutes) for the lock to free up.
+
+After a successful run, skip straight to **step 7** below — the database
+is already created, migrated, and verified.
+
+## 4. Manual database setup (only if you used `--skip-db`)
 
 ```bash
 sudo mysql
@@ -64,32 +100,29 @@ mysql -u image_demo_user -p image_storage_demo < database/schema.sql
 mysql -u image_demo_user -p image_storage_demo < database/seed.sql   # optional demo rows
 ```
 
-## 5. Configure `.env`
+## 5. Manual `.env` review (only if you used `--skip-db`)
 
-Edit `.env` (created from `.env.example` by `install.sh`):
+`install.sh` writes `SECRET_KEY`, `DATABASE_URL`, `UPLOAD_FOLDER`, and
+`LOG_FILE` for you automatically on a normal run. If you used
+`--skip-db`, set `DATABASE_URL` yourself:
 
 ```bash
 nano .env
 ```
 
-Set at minimum:
-
 ```
-SECRET_KEY=<a long random value, e.g. `python3 -c "import secrets; print(secrets.token_hex(32))"`>
 DATABASE_URL=mysql+pymysql://image_demo_user:CHANGE_ME@localhost:3306/image_storage_demo
 ```
 
-## 6. Run database migrations
+## 6. Manual migration (only if you used `--skip-db`)
 
 ```bash
 source venv/bin/activate
 export FLASK_APP=run.py
-flask db init        # first time only
-flask db migrate -m "Initial schema"
 flask db upgrade
 ```
 
-## 7. Smoke-test with the Flask dev server
+## 7. Try it with the Flask dev server
 
 ```bash
 source venv/bin/activate
@@ -116,11 +149,13 @@ VM's hostname or IP.
 
 If you deployed the code somewhere other than the repo you cloned into,
 move (or symlink) the project directory to `/var/www/image-storage-demo`
-so the paths baked into the `.conf`/`.wsgi` files line up, e.g.:
+so the paths baked into the `.conf`/`.wsgi` files line up, then re-run
+the installer from the new location (it's idempotent and will simply
+reuse your existing database credentials):
 
 ```bash
 sudo mkdir -p /var/www
-sudo cp -r ~/-Image-Upload-Server-Based- /var/www/image-storage-demo
+sudo cp -r ~/image-storage-demo /var/www/image-storage-demo
 cd /var/www/image-storage-demo && sudo ./install.sh
 ```
 
@@ -143,13 +178,27 @@ vhost above.
 
 ## 10. Troubleshooting
 
+* **`install.sh` fails on "dpkg was interrupted"** — this shouldn't
+  happen anymore (the script repairs it automatically as a preflight
+  step), but if apt itself is in a genuinely broken state beyond a
+  simple `dpkg --configure -a`, run that command manually and re-run
+  `sudo ./install.sh`.
+* **`install.sh` hangs on "apt/dpkg lock is held..."** — `unattended-upgrades`
+  is mid-update; the script waits up to 5 minutes automatically. If it
+  times out, check `sudo systemctl status unattended-upgrades` and retry
+  once it's finished.
 * **`ModuleNotFoundError` under Apache** — the `python-path` in
   `WSGIDaemonProcess` (in the `.conf` file) or the venv path in the
   `.wsgi` file doesn't match your actual install location.
 * **413 on upload** — file exceeds `MAX_CONTENT_LENGTH` (10 MB) or
   Apache's `LimitRequestBody` in the vhost config; keep both in sync.
 * **`Access denied for user`** — re-check the `DATABASE_URL` credentials
-  in `.env` against what you created in step 4.
+  in `.env`; if you used the automatic installer, re-run `sudo
+  ./install.sh` and it will reuse (not rotate) the existing password.
 * **Static files 404 under Apache but work with `flask run`** — confirm
   the `Alias /static` path in the vhost config points at
   `app/static`, not the project root.
+* **Permission denied running `flask run` after `sudo ./install.sh`** —
+  shouldn't happen (the installer hands ownership back to the invoking
+  user automatically); if it does, run `sudo chown -R $USER:$USER .`
+  from the project directory.

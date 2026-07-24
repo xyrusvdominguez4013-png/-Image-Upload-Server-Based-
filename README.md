@@ -84,7 +84,9 @@ image-storage-demo/
 ├── run.py                     # Dev entry point
 ├── config.py                  # Env-based config
 ├── requirements.txt
-├── install.sh                 # Dependency-checking installer (Ubuntu)
+├── install.sh                 # All-in-one installer (Ubuntu) -- see below
+├── scripts/
+│   └── smoke_test.py          # End-to-end test invoked by install.sh
 ├── .env.example
 ├── database/
 │   ├── schema.sql
@@ -135,24 +137,45 @@ MySQL 8, and Apache2 + mod_wsgi — see
 **[docs/INSTALLATION.md](docs/INSTALLATION.md)**. The short version:
 
 ```bash
-git clone https://github.com/xyrusvdominguez4013-png/-Image-Upload-Server-Based-.git
-cd -Image-Upload-Server-Based-
+git clone https://github.com/xyrusvdominguez4013-png/image-storage-demo.git
+cd image-storage-demo
 chmod +x install.sh
-sudo ./install.sh          # checks for + installs anything missing
+sudo ./install.sh
 ```
 
-`install.sh` is idempotent: it checks whether each dependency (Python 3,
-venv, pip, Pillow's native libs, MySQL, Apache2, mod_wsgi, Git) is already
-present before installing it, creates the virtual environment, installs
-`requirements.txt`, and scaffolds `.env` from `.env.example`.
+`install.sh` is a single, idempotent, all-in-one installer. Every step
+prints a colored PASS/FAIL line, with a summary at the end. Beyond system
+packages, one run also:
+
+1. Provisions the MySQL database and application user (random generated
+   password).
+2. Writes a working `.env` — `SECRET_KEY`, `DATABASE_URL`, and the
+   `UPLOAD_FOLDER`/`LOG_FILE` paths, correctly pointed at wherever you
+   actually cloned the repo.
+3. Runs Flask-Migrate against the real database.
+4. Runs an end-to-end smoke test — real image uploads through both
+   storage methods, every dashboard, byte-for-byte retrieval, and
+   validator rejection of a bad file — against a **disposable throwaway
+   database** that's dropped afterward, so your real data is never
+   touched.
+5. Hands file ownership back to the invoking user so `flask run` works
+   immediately afterward.
+
+It also proactively repairs a couple of common real-world failure modes
+on fresh Ubuntu VMs: an interrupted dpkg state, and the apt/dpkg lock
+being held by `unattended-upgrades` right after boot (it waits instead
+of failing). Flags: `--skip-smoke-test`, `--skip-db` (see
+[docs/INSTALLATION.md](docs/INSTALLATION.md) for details).
 
 ## Database Configuration
 
-See [database/schema.sql](database/schema.sql) for the raw DDL and
-[docs/INSTALLATION.md](docs/INSTALLATION.md#4-configure-mysql) for the
-`CREATE DATABASE` / `CREATE USER` steps. `DATABASE_URL` in `.env` controls
-which database the app connects to (MySQL by default in production,
-SQLite by default in local dev):
+`install.sh` provisions the database automatically (see above). See
+[database/schema.sql](database/schema.sql) for the raw DDL, and
+[docs/INSTALLATION.md](docs/INSTALLATION.md#4-manual-database-setup-only-if-you-used---skip-db)
+for the manual `CREATE DATABASE` / `CREATE USER` steps if you used
+`--skip-db`. `DATABASE_URL` in `.env` controls which database the app
+connects to (MySQL by default in production, SQLite by default in local
+dev):
 
 ```
 DATABASE_URL=mysql+pymysql://image_demo_user:CHANGE_ME@localhost:3306/image_storage_demo
