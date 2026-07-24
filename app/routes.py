@@ -13,9 +13,11 @@ from flask import (
 from app.extensions import db
 from app.forms import ImageUploadForm
 from app.models import Image, StorageMethod
-from app.services.blob_storage import read_from_blob, save_to_blob
+from app.services.blob_storage import delete_blob, read_from_blob, save_to_blob
 from app.services.comparison_service import COMPARISON_MATRIX, build_benchmark
-from app.services.filesystem_storage import read_from_filesystem, save_to_filesystem
+from app.services.filesystem_storage import (
+    delete_from_filesystem, read_from_filesystem, save_to_filesystem,
+)
 from app.services.image_validator import validate_upload
 from app.services.statistics_service import build_statistics
 
@@ -124,6 +126,34 @@ def gallery():
         total_pages=total_pages,
         total=total,
     )
+
+
+@main_bp.route("/image/<int:image_id>/delete", methods=["POST"])
+def delete_image(image_id):
+    image = Image.query.get_or_404(image_id)
+    original_filename = image.original_filename
+    storage_method = image.storage_method
+
+    try:
+        if storage_method == StorageMethod.FILESYSTEM:
+            delete_from_filesystem(image, current_app.config["UPLOAD_FOLDER"])
+        else:
+            delete_blob(image)
+        current_app.logger.info(
+            "Deleted %s image id=%s original=%s", storage_method, image_id, original_filename,
+        )
+        flash(f"'{original_filename}' was deleted.", "success")
+    except OSError as exc:
+        current_app.logger.exception("Failed to delete image id=%s: %s", image_id, exc)
+        db.session.rollback()
+        flash(f"Could not delete '{original_filename}'. Please try again.", "danger")
+
+    return redirect(url_for(
+        "main.gallery",
+        storage=request.form.get("storage", "all"),
+        q=request.form.get("q", ""),
+        page=request.form.get("page", 1),
+    ))
 
 
 @main_bp.route("/image/blob/<int:image_id>")

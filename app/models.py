@@ -47,12 +47,16 @@ class Image(db.Model):
     upload_duration_ms = db.Column(db.Float, nullable=True)
     last_retrieval_duration_ms = db.Column(db.Float, nullable=True)
 
+    # passive_deletes is intentionally NOT set: that would rely on the
+    # database's own ON DELETE CASCADE, which MySQL enforces but SQLite
+    # does not by default -- it would silently orphan image_blobs rows in
+    # SQLite (dev) while working fine in MySQL (prod). Letting SQLAlchemy's
+    # ORM issue the child DELETE itself works correctly on both.
     blob = db.relationship(
         "ImageBlob",
         backref="image",
         uselist=False,
         cascade="all, delete-orphan",
-        passive_deletes=True,
     )
 
     def __repr__(self):  # pragma: no cover - debugging helper

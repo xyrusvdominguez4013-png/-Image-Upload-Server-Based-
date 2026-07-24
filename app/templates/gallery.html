@@ -44,6 +44,14 @@
           <li>Type: {{ image.mime_type }}</li>
           <li>Uploaded: {{ image.upload_time.strftime('%Y-%m-%d %H:%M') }}</li>
         </ul>
+        <form method="post" action="{{ url_for('main.delete_image', image_id=image.id) }}"
+              class="mt-2" onsubmit="return confirm('Delete &#39;{{ image.original_filename }}&#39; permanently? This cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="storage" value="{{ storage_filter }}">
+          <input type="hidden" name="q" value="{{ search }}">
+          <input type="hidden" name="page" value="{{ page }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+        </form>
       </div>
     </div>
   </div>

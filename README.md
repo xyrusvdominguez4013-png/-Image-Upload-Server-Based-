@@ -35,7 +35,10 @@ numbers from your own uploads.
   cap, and real image-content verification via Pillow (`Image.verify()`),
   so a renamed non-image file is rejected regardless of its extension.
 - **Gallery** — responsive Bootstrap cards, filterable by storage method,
-  searchable by filename, paginated.
+  searchable by filename, paginated, with a one-click **Delete** (with
+  confirmation) that correctly removes both the metadata row and the
+  underlying data — the on-disk file for filesystem images, or the
+  `image_blobs` row for BLOB images.
 - **Statistics dashboard** — live counts, upload-folder size, BLOB storage
   size, average upload/retrieval time, largest/smallest image, and a
   storage-distribution chart.

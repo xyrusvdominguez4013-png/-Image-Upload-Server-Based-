@@ -17,7 +17,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app  # noqa: E402
-from app.models import Image  # noqa: E402
+from app.extensions import db  # noqa: E402
+from app.models import Image, ImageBlob  # noqa: E402
 
 CSRF_RE = re.compile(rb'name="csrf_token"[^>]*value="([^"]+)"')
 
@@ -120,6 +121,27 @@ def run() -> None:
         resp = client.get(f"/image/blob/{blob_id}")
         check(resp.status_code == 200, f"GET /image/blob/{blob_id} -> {resp.status_code}")
         check(resp.data == blob_bytes, "BLOB image bytes did not round-trip correctly")
+
+        # --- Delete removes both the metadata row and the underlying data,
+        # with no orphaned image_blobs row left behind -------------------------
+        resp = client.get("/gallery")
+        token = extract_csrf(resp.data)
+        resp = client.post(f"/image/{fs_id}/delete", data={"csrf_token": token}, follow_redirects=True)
+        check(resp.status_code == 200, f"POST /image/{fs_id}/delete -> {resp.status_code}")
+        token = extract_csrf(resp.data)
+        resp = client.post(f"/image/{blob_id}/delete", data={"csrf_token": token}, follow_redirects=True)
+        check(resp.status_code == 200, f"POST /image/{blob_id}/delete -> {resp.status_code}")
+
+        with app.app_context():
+            check(db.session.get(Image, fs_id) is None, "Filesystem image row still exists after delete")
+            check(db.session.get(Image, blob_id) is None, "BLOB image row still exists after delete")
+            check(
+                ImageBlob.query.filter_by(image_id=blob_id).first() is None,
+                "Orphaned image_blobs row left behind after BLOB image delete",
+            )
+
+        resp = client.get(f"/image/filesystem/{fs_id}")
+        check(resp.status_code == 404, f"Deleted filesystem image still retrievable: {resp.status_code}")
 
         # --- Validator rejects a fake image ----------------------------------
         resp = client.get("/upload/filesystem")
