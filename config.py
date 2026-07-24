@@ -56,7 +56,13 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE", True)
+    # The Apache vhost this project ships (deployment/apache/*.conf) serves
+    # plain HTTP with no TLS configured. A "Secure" cookie is silently
+    # dropped by the browser over HTTP, which breaks session-backed CSRF
+    # protection entirely (login/forms fail with "CSRF session token is
+    # missing"). Default to False to match that reality; set
+    # SESSION_COOKIE_SECURE=true in .env once you've put this behind HTTPS.
+    SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE", False)
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
