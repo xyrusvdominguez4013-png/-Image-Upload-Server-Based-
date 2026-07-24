@@ -81,7 +81,7 @@ image-storage-demo/
 └── docs/
 ```
 
-## 4. Upload Workflow (File System)
+## 4. Upload Workflow Sequence Diagram (File System)
 
 ```mermaid
 sequenceDiagram
@@ -108,7 +108,7 @@ sequenceDiagram
     end
 ```
 
-## 5. Upload Workflow (Database BLOB)
+## 5. Upload Workflow Sequence (Database BLOB)
 
 ```mermaid
 sequenceDiagram
