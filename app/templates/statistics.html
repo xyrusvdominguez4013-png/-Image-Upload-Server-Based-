@@ -31,19 +31,19 @@
 </div>
 
 <div class="row g-4 mb-4">
-  <div class="col-md-3 col-sm-6">
+  <div class="col-md-4 col-sm-6">
     <div class="card text-center h-100"><div class="card-body">
       <div class="display-6">{{ (stats.blob_storage_size_bytes / 1024 / 1024) | round(2) }} MB</div>
       <div class="text-muted">Database BLOB Storage Size</div>
     </div></div>
   </div>
-  <div class="col-md-3 col-sm-6">
+  <div class="col-md-4 col-sm-6">
     <div class="card text-center h-100"><div class="card-body">
       <div class="display-6">{% if stats.avg_upload_duration_ms is not none %}{{ stats.avg_upload_duration_ms | round(1) }} ms{% else %}&mdash;{% endif %}</div>
       <div class="text-muted">Average Upload Time</div>
     </div></div>
   </div>
-  <div class="col-md-3 col-sm-6">
+  <div class="col-md-4 col-sm-6">
     <div class="card text-center h-100"><div class="card-body">
       <div class="display-6">{% if stats.avg_retrieval_duration_ms is not none %}{{ stats.avg_retrieval_duration_ms | round(1) }} ms{% else %}&mdash;{% endif %}</div>
       <div class="text-muted">Average Retrieval Time</div>
@@ -51,41 +51,52 @@
   </div>
 </div>
 
-<div class="row g-4 mb-4">
-  <div class="col-md-6">
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Storage Distribution</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-wrap">
+          <canvas id="storageChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-header fw-semibold">Largest Uploaded Image</div>
       <div class="card-body">
         {% if stats.largest_image %}
-          <p class="mb-1"><strong>{{ stats.largest_image.original_filename }}</strong></p>
-          <p class="text-muted small mb-0">{{ (stats.largest_image.filesize / 1024) | round(1) }} KB &middot;
-            {{ 'File System' if stats.largest_image.storage_method == 'filesystem' else 'Database BLOB' }}</p>
+          <p class="mb-2 text-truncate" title="{{ stats.largest_image.original_filename }}">
+            <strong>{{ stats.largest_image.original_filename }}</strong>
+          </p>
+          <span class="badge {{ 'bg-primary' if stats.largest_image.storage_method == 'filesystem' else 'bg-success' }} mb-2">
+            {{ 'File System' if stats.largest_image.storage_method == 'filesystem' else 'Database BLOB' }}
+          </span>
+          <p class="text-muted small mb-0">{{ (stats.largest_image.filesize / 1024) | round(1) }} KB</p>
         {% else %}
           <p class="text-muted mb-0">No images uploaded yet.</p>
         {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-md-6">
+  <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-header fw-semibold">Smallest Uploaded Image</div>
       <div class="card-body">
         {% if stats.smallest_image %}
-          <p class="mb-1"><strong>{{ stats.smallest_image.original_filename }}</strong></p>
-          <p class="text-muted small mb-0">{{ (stats.smallest_image.filesize / 1024) | round(1) }} KB &middot;
-            {{ 'File System' if stats.smallest_image.storage_method == 'filesystem' else 'Database BLOB' }}</p>
+          <p class="mb-2 text-truncate" title="{{ stats.smallest_image.original_filename }}">
+            <strong>{{ stats.smallest_image.original_filename }}</strong>
+          </p>
+          <span class="badge {{ 'bg-primary' if stats.smallest_image.storage_method == 'filesystem' else 'bg-success' }} mb-2">
+            {{ 'File System' if stats.smallest_image.storage_method == 'filesystem' else 'Database BLOB' }}
+          </span>
+          <p class="text-muted small mb-0">{{ (stats.smallest_image.filesize / 1024) | round(1) }} KB</p>
         {% else %}
           <p class="text-muted mb-0">No images uploaded yet.</p>
         {% endif %}
       </div>
     </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header fw-semibold">Storage Distribution</div>
-  <div class="card-body">
-    <canvas id="storageChart" height="100"></canvas>
   </div>
 </div>
 {% endblock %}

@@ -101,7 +101,15 @@ window.ImageStorageDemo = (function () {
           },
         ],
       },
-      options: { responsive: true },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        cutout: "65%",
+        plugins: {
+          legend: { position: "bottom", labels: { boxWidth: 12, padding: 12 } },
+        },
+      },
     });
   }
 
